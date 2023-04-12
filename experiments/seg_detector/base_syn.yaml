@@ -1,0 +1,52 @@
+import:
+    - 'experiments/base.yaml'
+package:
+    - 'decoders.seg_detector_loss'
+define:
+  - name: train_data
+    #class: ImageDataset_syn
+    class: hierarchical_dataset
+    data_dir:
+        - '/nas/datahub/SynthText-KR-2'
+        - '/nas/datahub/SynthText'
+        #- '/nas/datahub/SynthText-KR-2/syn_kr_custom/custom_syn_kr/test'
+
+    data_list :
+        - 'train'
+    processes:
+        - class: AugmentDetectionData
+          augmenter_args:
+              - ['Fliplr', 0.5]
+              - {'cls': 'Affine', 'rotate': [-10, 10]}
+              - ['Resize', [1.0, 3.0]]
+          only_resize: False
+          keep_ratio: False
+        - class: RandomCropData
+          size: [640, 640]
+          max_tries: 10
+        - class: MakeICDARData
+        - class: MakeSegDetectionData
+        - class: MakeBorderMap
+        - class: NormalizeImage
+        - class: FilterKeys
+          superfluous: ['polygons', 'filename', 'shape', 'ignore_tags', 'is_training']
+
+  - name: validate_data
+    class: ImageDataset_prc
+    data_dir:
+        #- './datasets/icdar2013'
+        - '/nas/datahub/prescription'
+    data_list:
+        - './datasets/icdar2013/test_gt.json'
+        #- './datasets/icdar2015/test_list.txt'
+    processes:
+        - class: AugmentDetectionData
+          augmenter_args:
+              - ['Resize', {'width': 2560, 'height': 3299}]
+              # - ['Resize', {'width': 2048, 'height': 1152}]
+          only_resize: True
+          keep_ratio: True
+          opt: 'width'
+        - class: MakeICDARData
+        - class: MakeSegDetectionData
+        - class: NormalizeImage
