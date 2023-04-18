@@ -47,10 +47,29 @@ class MakeBorderMap(DataProcess):
 
         # ------------------------------------------------------------------------------#
         # check poly with image
-        # import ipdb;ipdb.set_trace()
+
         #
         # cv2.imwrite('canvas.png', canvas*255)
         # cv2.imwrite('mask2.png', mask*255)
+        #cv2.imwrite('image.png', image)
+
+        im = image.copy()
+        for box in data['polygons']:
+            test_poly = box
+
+            cv2.polylines(
+                im, [np.reshape(np.int32(test_poly), (-1, 1, 2))], True, (0, 0, 255),10
+            )
+
+
+        try:
+            cv2.imwrite('./testtest2/testpoly_{}'.format(data['filename']), im)
+            cv2.imwrite('./testtest2/canvas_{}'.format(data['filename']),canvas*255)
+        except:
+            cv2.imwrite('./testtest2/testpoly_{}.png'.format(data['filename']), im)
+            cv2.imwrite('./testtest2/canvas_{}.png'.format(data['filename']),canvas*255)
+
+
 
         # ------------------------------------------------------------------------------#
 

@@ -49,13 +49,11 @@ class AugmentData(DataProcess):
         if self.augmenter:
             aug = self.augmenter.to_deterministic()
             if self.only_resize:
-
                 data['image'] = self.resize_image(image, self.opt)
-
-
             else:
                 data['image'] = aug.augment_image(image)
             self.may_augment_annotation(aug, data, shape)
+
 
         filename = data.get('filename', data.get('data_id', ''))
         data.update(filename=filename, shape=shape[:2])

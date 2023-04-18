@@ -204,9 +204,37 @@ class ImageDataset_syn(data.Dataset, Configurable):
         data['image'] = img
 
         # label
-        wordBB = gt.attrs["wordBB"]
+        #------------------------------------------------------------------#
+        # word 단위 annotation
+        # wordBB = gt.attrs["wordBB"]
+        # txt = gt.attrs["txt"]
+        # all_char_bbox = wordBB.transpose((2, 1, 0))
+        # try:
+        #     words = [re.split(" \n|\n |\n| ", t.strip()) for t in txt]
+        # except:
+        #     txt = [t.decode("UTF-8") for t in txt]
+        #     words = [re.split(" \n|\n |\n| ", t.strip()) for t in txt]
+        #
+        # words = list(itertools.chain(*words))
+        # words = [t for t in words if len(t) > 0]
+        #
+        #
+        # line = []
+        # for i in range(len(words)):
+        #     target = {}
+        #     word_bbox = all_char_bbox[i]
+        #     word_bbox = np.array(word_bbox).astype(np.float32).tolist()
+        #     target['poly'] = word_bbox
+        #     target['text'] = words[i]
+        #     line.append(target)
+        # ------------------------------------------------------------------#
+
+        # char 단위 annotation
+        charBB = gt.attrs["charBB"]
         txt = gt.attrs["txt"]
-        all_char_bbox = wordBB.transpose((2, 1, 0))
+        all_char_bbox = charBB.transpose((2, 1, 0))
+
+
         try:
             words = [re.split(" \n|\n |\n| ", t.strip()) for t in txt]
         except:
@@ -216,13 +244,39 @@ class ImageDataset_syn(data.Dataset, Configurable):
         words = list(itertools.chain(*words))
         words = [t for t in words if len(t) > 0]
 
+        word_level_char_bbox = []
+        char_idx = 0
+        for i in range(len(words)):
+            length_of_word = len(words[i])
+            word_bbox = all_char_bbox[char_idx: char_idx + length_of_word]
+            assert len(word_bbox) == length_of_word
+            char_idx += length_of_word
+            word_bbox = np.array(word_bbox)
+
+            xmax =  word_bbox[:,:,0].max()
+            xmin = word_bbox[:, :, 0].min()
+            ymax = word_bbox[:, :, 1].max()
+            ymin = word_bbox[:, :, 1].min()
+
+            new_word_bbox = np.array([
+                [xmin, ymin],
+                [xmax, ymin],
+                [xmax, ymax],
+                [xmin, ymax],
+
+            ])
+            #new_word_bbox = np.expand_dims(new_word_bbox, axis=0)
+            word_level_char_bbox.append(new_word_bbox)
+
+
         line = []
         for i in range(len(words)):
             target = {}
-            word_bbox = all_char_bbox[i]
+            word_bbox = word_level_char_bbox[i]
             word_bbox = np.array(word_bbox).astype(np.float32).tolist()
             target['poly'] = word_bbox
             target['text'] = words[i]
+
             line.append(target)
 
         data['lines'] = line
@@ -306,12 +360,9 @@ class ImageDataset_prc(data.Dataset, Configurable):
         image_path = self.image_paths[index]
         img = cv2.imread(image_path, cv2.IMREAD_COLOR).astype('float32')
 
-        if self.is_training:
-            data['filename'] = image_path
-            data['data_id'] = image_path
-        else:
-            data['filename'] = image_path.split('/')[-1]
-            data['data_id'] = image_path.split('/')[-1]
+        data['filename'] = image_path.split('/')[-1]
+        data['data_id'] = image_path.split('/')[-1]
+
         data['image'] = img
         target = self.targets[index]
         data['lines'] = target
